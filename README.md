@@ -15,7 +15,7 @@ One API for adding Apple Wallet `.pkpass` files and Google Wallet metadata or si
 
 ```yaml
 dependencies:
-  flutter_wallet_kit: ^0.0.1
+  flutter_wallet_kit: ^0.0.2
 ```
 
 Supported targets: iOS 15+ and Android API 24+.
@@ -125,6 +125,40 @@ AddToGoogleWalletButton(
 Or validate/store it first with `GoogleWalletPass.custom(myCompleteJsonString)`. Existing manual button usage remains supported through `onPressed`.
 
 Each button renders only on its native platform. Apple uses system-provided, localized `PKAddPassButton`. Android bundles Google's official localized XML assets, enforces its 200dp × 48dp minimum, and includes required 8dp clear space by default.
+
+### Custom button design
+
+`WalletButton` owns wallet flow while its builder owns complete visual design:
+
+```dart
+WalletButton(
+  iosPassData: myPkpassBytes,
+  androidPass: pass, // GoogleWalletPass or complete JSON string
+  onSuccess: () => showSnackBar(context, 'Pass added'),
+  onCanceled: () => showSnackBar(context, 'Canceled'),
+  onError: (error) => showSnackBar(context, error.toString()),
+  builder: (context, onPressed, isLoading) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: isLoading
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.wallet),
+      label: const Text('Save my pass'),
+    );
+  },
+)
+```
+
+For a signed Android JWT, use `androidJwt` instead of `androidPass`. `onPressed` becomes `null` while disabled/loading, preventing duplicate submissions.
+
+Apple and Google enforce branding rules for public “Add to Wallet” buttons. Prefer official widgets above when representing their brands; use `WalletButton` for app-specific actions and layouts.
+
+## iOS dependency managers
+
+Package supports Swift Package Manager and CocoaPods. Flutter 3.44+ discovers [`ios/flutter_wallet_kit/Package.swift`](ios/flutter_wallet_kit/Package.swift) automatically. SwiftPM manifest includes `FlutterFramework`, plugin source, iOS 15 deployment target, and privacy manifest resource.
 
 ## Backend requirement
 

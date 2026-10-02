@@ -1,6 +1,6 @@
 name: flutter_wallet_kit
 description: Add Apple Wallet pkpass files and Google Wallet JSON or JWT passes with native branded buttons.
-version: 0.0.1
+version: 0.0.2
 homepage: https://pub.dev/pinzarulab/flutter_wallet_kit
 topics:
   - wallet

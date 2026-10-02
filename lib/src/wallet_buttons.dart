@@ -9,6 +9,104 @@ import 'wallet_models.dart';
 
 enum AppleWalletButtonStyle { black, blackOutline }
 
+/// Builds a custom wallet action surface.
+///
+/// [onPressed] is `null` while disabled or while an operation is running.
+typedef WalletButtonBuilder = Widget Function(
+  BuildContext context,
+  VoidCallback? onPressed,
+  bool isLoading,
+);
+
+/// Platform-neutral wallet action with developer-owned visual design.
+///
+/// Supply both [iosPassData] and one Android value from shared code. Native
+/// platform uses only its matching value.
+class WalletButton extends StatefulWidget {
+  const WalletButton({
+    required this.builder,
+    this.iosPassData,
+    this.androidPass,
+    this.androidJwt,
+    this.onSuccess,
+    this.onCanceled,
+    this.onError,
+    this.onResult,
+    this.enabled = true,
+    super.key,
+  })  : assert(
+          androidPass == null ||
+              androidPass is String ||
+              androidPass is GoogleWalletPass,
+          'androidPass must be a String or GoogleWalletPass.',
+        ),
+        assert(
+          androidPass == null || androidJwt == null,
+          'Provide androidPass or androidJwt, not both.',
+        );
+
+  final WalletButtonBuilder builder;
+  final Uint8List? iosPassData;
+
+  /// [GoogleWalletPass] metadata or complete developer-authored JSON string.
+  final Object? androidPass;
+
+  /// Backend-signed Google Wallet JWT.
+  final String? androidJwt;
+  final VoidCallback? onSuccess;
+  final VoidCallback? onCanceled;
+  final ValueChanged<Object>? onError;
+  final ValueChanged<WalletResult>? onResult;
+  final bool enabled;
+
+  @override
+  State<WalletButton> createState() => _WalletButtonState();
+}
+
+class _WalletButtonState extends State<WalletButton> {
+  bool _isLoading = false;
+
+  Future<void> _pressed() async {
+    if (_isLoading || !widget.enabled) return;
+    setState(() => _isLoading = true);
+    try {
+      final androidPassJson = switch (widget.androidPass) {
+        GoogleWalletPass value => value.json,
+        String value => GoogleWalletPass.custom(value).json,
+        _ => null,
+      };
+      final result = await FlutterWalletKitPlatform.instance.addPass(
+        iosPassData: widget.iosPassData,
+        androidJwt: widget.androidJwt,
+        androidPassJson: androidPassJson,
+      );
+      if (!mounted) return;
+      widget.onResult?.call(result);
+      switch (result) {
+        case WalletResult.success || WalletResult.alreadyAdded:
+          widget.onSuccess?.call();
+        case WalletResult.cancelled:
+          widget.onCanceled?.call();
+        default:
+          widget.onError?.call(WalletException(result));
+      }
+    } catch (error) {
+      if (mounted) widget.onError?.call(error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.builder(
+      context,
+      widget.enabled && !_isLoading ? _pressed : null,
+      _isLoading,
+    );
+  }
+}
+
 /// Apple's native, localized `PKAddPassButton`.
 class AddToAppleWalletButton extends StatefulWidget {
   const AddToAppleWalletButton({

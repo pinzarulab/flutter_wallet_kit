@@ -1,3 +1,8 @@
+## 0.0.2
+
+* Add complete Swift Package Manager support, including privacy resources.
+* Add `WalletButton` builder for fully custom button designs.
+
 ## 0.0.1
 
 * Add Apple Wallet `.pkpass` flow.
